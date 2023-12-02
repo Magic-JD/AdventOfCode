@@ -14,7 +14,7 @@ public class FileParser {
             FileInputStream stream = new FileInputStream(filename);
             BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
             String strLine;
-            ArrayList<String> lines = new ArrayList<String>();
+            ArrayList<String> lines = new ArrayList<>();
             while ((strLine = reader.readLine()) != null) {
                 lines.add(strLine);
             }
