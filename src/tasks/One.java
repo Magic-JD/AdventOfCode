@@ -5,8 +5,6 @@ import tools.FileParser;
 import java.util.List;
 import java.util.Optional;
 
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
 public class One {
     public static void main(String[] args) {
         FileParser fileParser = new FileParser();
