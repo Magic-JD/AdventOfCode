@@ -1,43 +1,54 @@
-import tools.InternetParser;
 
-import java.util.List;
+        import tasks.Three;
+        import tools.InternetParser;
 
-import static java.lang.Math.max;
-import static tools.LineUtils.extractInt;
-import static tools.LineUtils.split;
+        import java.util.*;
+
+        import static tools.LineUtils.extractInt;
 
 public class Main {
 
-    public static void main(String[] args) {
-        List<String> strings = InternetParser.getInput(2);
-        int count = 0;
-        for (String string : strings) {
-            String[] split = split(string, ":");
-            int maxRed = Integer.MIN_VALUE;
-            int maxGreen = Integer.MIN_VALUE;
-            int maxBlue = Integer.MIN_VALUE;
-            var draws = split(split[1], ";");
-            for (String draw : draws) {
-                String[] dice = split(draw, ",");
-                for (String die : dice) {
-                    String[] cd = split(die, " ");
-                    var color = cd[1];
-                    var no = extractInt(cd[0]);
+    public static final String testData = """
 
-                    if (color.equals("red")) {
-                        maxRed = max(no, maxRed);
-                    }
-                    if (color.equals("blue")) {
-                        maxBlue = max(no, maxBlue);
-                    }
-                    if (color.equals("green")) {
-                        maxGreen = max(no, maxGreen);
-                    }
-                }
-            }
-            count += maxBlue * maxGreen * maxRed;
+            """;
+
+
+    private static class JoeNumber{
+        int number;
+        public JoeNumber(int number){
+            this.number = number;
         }
-        System.out.println(count);
+    }
+
+    private static Map<String, JoeNumber> map = new HashMap<>();
+    private static List<List<Integer>> stars = new ArrayList<>();
+
+    /**
+     *
+     */
+    public static void main(String[] args) {
+        List<String> testInput = Arrays.stream(testData.split("\n")).toList();
+        List<String> mainInput = InternetParser.getInput(4);
+        run(testInput, "-");
+        run(mainInput, "???");
+    }
+
+    public static void run(List<String> input, String expectedOutput){
+        String answer = "";
+        showAnswer(answer, expectedOutput);
+    }
+
+    public static void showAnswer(String answer, String expectedOutput){
+        if(expectedOutput.equals("???")){
+            System.out.println("The actual output is : " + answer);
+        } else {
+            System.out.println("Current answer = " + answer + ". Expected answer = " + expectedOutput);
+            if(answer.equals(expectedOutput)){
+                System.out.println("CORRECT");
+            } else {
+                System.out.println("INCORRECT");
+            }
+        }
     }
 
 }
