@@ -16,17 +16,17 @@ public class Main {
      */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
-        List<String> mainInput = InternetParser.getInput(4);
-        run(testInput, "-");
-        run(mainInput, "???");
+        List<String> mainInput = InternetParser.getInput(5);
+        run(testInput, "-", System.currentTimeMillis());
+        run(mainInput, "???", System.currentTimeMillis());
     }
 
-    public static void run(List<String> input, String expectedOutput) {
+    public static void run(List<String> input, String expectedOutput, long startTime) {
         String answer = "";
-        showAnswer(answer, expectedOutput);
+        showAnswer(answer, expectedOutput, startTime);
     }
 
-    public static void showAnswer(String answer, String expectedOutput) {
+    public static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("The actual output is : " + answer);
         } else {
@@ -37,6 +37,8 @@ public class Main {
                 System.out.println("INCORRECT");
             }
         }
+        System.out.println("Runtime: " + (System.currentTimeMillis() - startTime));
+        System.out.println("-----------------------------------------------------------");
     }
 
 }

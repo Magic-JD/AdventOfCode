@@ -4,9 +4,12 @@ import tools.InternetParser;
 import tools.LineUtils;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static tools.LineUtils.extractInt;
 import static tools.LineUtils.split;
@@ -34,33 +37,20 @@ public class Four {
     }
 
     public static void run(List<String> input, String expectedOutput) {
-        int current = 1;
-        List<String> list = input.stream().map(s -> split(s, ":")[1]).toList();
-        Map<Integer, Integer> collect = input.stream().map(s -> split(s, ":")[0]).map(LineUtils::extractInt).collect(Collectors.toMap(i -> i, i -> 1));
-        for (String s : list) {
-            int times = collect.get(current);
-            if (times > 0) {
-                String[] split = s.split("\\|");
-                var y = split[1];
-                var w = split[0];
-                List<Integer> yourNo = Arrays.stream(split(y, " ")).filter(x -> !x.isBlank()).map(no -> extractInt(no)).toList();
-                List<Integer> wn = Arrays.stream(split(w, " ")).filter(x -> !x.isBlank()).map(no -> extractInt(no)).toList();
-                int points = 0;
-                for (int n : yourNo) {
-                    if (wn.contains(n)) {
-                        points++;
-                    }
-                }
-                for (int i = 1; i <= points; i++) {
-                    collect.put(i + current, collect.get(i + current) + times);
-                }
-                if(points == 0 && times == 1){
-                    break;
-                }
+        int[] ticketCounts = IntStream.generate(() -> 1).limit(input.size()).toArray();
+
+        for (int i = 0; i < input.size(); i++) {
+            String[] numberStrings = input.get(i).split(":")[1].replaceAll("\\|", "").split("\\s+");
+            int points = numberStrings.length - Arrays.stream(numberStrings).collect(Collectors.toSet()).size();
+            int times = ticketCounts[i];
+            for (int j = 1; j <= points; j++) {
+                ticketCounts[j+i] += times;
             }
-            current++;
+            if (points == 0 && times == 1) {
+                break;
+            }
         }
-        String answer = "" + collect.values().stream().mapToInt(i -> i).sum();
+        String answer = "" + Arrays.stream(ticketCounts).sum();
         showAnswer(answer, expectedOutput);
     }
 

@@ -1,5 +1,7 @@
 package tools;
 
+import java.util.Arrays;
+
 public class LineUtils {
 
     public static int extractInt(String s) {
@@ -18,12 +20,12 @@ public class LineUtils {
         return Double.parseDouble(s.replaceAll("[^0-9.-]", ""));
     }
 
-    public static String[] split(String string, String splitter) {
-        String[] split = string.split(splitter);
-        for (int i = 0; i < split.length; i++) {
-            split[i] = split[i].trim();
-        }
-        return split;
+    public static String[] split(String string, String regex) { // Must escape out regex characters
+        return Arrays.stream(string.split(regex))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toArray(String[]::new);
+
     }
 
 }
