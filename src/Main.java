@@ -77,7 +77,7 @@ public class Main {
                 return List.of(List.of(new MR(destStart, destStart + (mr.end - mr.start - remainingRange))), List.of(new MR(mr.start, mr.start + remainingRange - 1)));//Correct
             } else {
                 var remainingRange1 = conEnd - range;
-                return List.of(List.of(new MR(destStart, (destStart + range) - 1)), List.of(new MR(mr.start, mr.start + remainingRange1 - 1), new MR(mr.start + (range - conStart), mr.end)));
+                return List.of(List.of(new MR(destStart, (destStart + range) - 1)), List.of(new MR(mr.start, (mr.start + Math.abs(conStart)) - 1), new MR(mr.start + (range - conStart), mr.end)));
             }
         }
     }
@@ -98,7 +98,7 @@ public class Main {
         for (int i = 0; i < seeds.size(); i += 2) {
             long first = seeds.get(i);
             long second = seeds.get(i + 1);
-            newValues.add(new MR(first, first + second));
+            newValues.add(new MR(first, (first + second) - 1));
         }
         List<List<Range>> mappings = new ArrayList<>();
         List<Range> current = new ArrayList<>();
