@@ -4,6 +4,10 @@ import java.util.Arrays;
 
 public class LineUtils {
 
+    public static long extractLong(String s) {
+        return Long.parseLong(s.replaceAll("[^0-9]", ""));
+    }
+
     public static int extractInt(String s) {
         return Integer.parseInt(s.replaceAll("[^0-9]", ""));
     }
