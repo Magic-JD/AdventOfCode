@@ -143,9 +143,12 @@ public class Seven {
     }
 
     public static void showAnswer(String answer, String expectedOutput, long startTime) {
+        System.out.println("-----------------------------------------------------------");
         if (expectedOutput.equals("???")) {
+            System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);
         } else {
+            System.out.println("TEST CASE");
             System.out.println("Current answer = " + answer + ". Expected answer = " + expectedOutput);
             if (answer.equals(expectedOutput)) {
                 System.out.println("CORRECT");

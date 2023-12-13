@@ -1,13 +1,13 @@
+package tasks;
 
 import tools.Direction;
 import tools.InternetParser;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static tools.Direction.*;
 
-public class Main {
+public class Ten {
 
     public static final String testData = """         
             ..........
