@@ -58,11 +58,11 @@ public class Thirteen {
         }
         reflections.add(currentList);
 
-        return reflections.stream().mapToLong(Thirteen::valueForReflection).sum();
+        return reflections.stream().map(Thirteen::valueForReflection).mapToLong(vh -> vh.v + (vh.h * 100)).sum();
     }
 
-    private static long valueForReflection(List<String> reflection){
-        long oldValue = calculateReflection(reflection);
+    private static VH valueForReflection(List<String> reflection){
+        VH oldValue = calculateReflection(reflection).get(0);
         int height = reflection.size();
         int width = reflection.get(0).length();
         for (int i = 0; i < height; i++) {
@@ -72,9 +72,11 @@ public class Thirteen {
                 var newString = new String(s);
                 reflection.remove(i);
                 reflection.add(i, newString);
-                long newValue = calculateReflection(reflection);
-                if(newValue > 0 && newValue != oldValue){
-                    return newValue > oldValue ? newValue - oldValue : newValue;
+                var newValues = calculateReflection(reflection);
+                for(VH vh : newValues){
+                    if(!vh.equals(oldValue)){
+                        return vh;
+                    }
                 }
                 s[j] = s[j] == '.' ? '#' : '.';
                 newString = new String(s);
@@ -93,16 +95,17 @@ public class Thirteen {
         throw new RuntimeException("No new value found!!!");
     }
 
-    private static long calculateReflection(List<String> reflection){
-        long v = 0;
-        long h = 0;
+    private record VH(long v, long h){}
+
+    private static List<VH> calculateReflection(List<String> reflection){
+        var vhs = new ArrayList<VH>();
         int height = reflection.size();
         for (int i = 0; i < height -1; i++) {
             for (int j = 1; true; j++) {
                 int ti = i + j;
                 int bi = i - (j - 1);
                 if(ti >= height || bi < 0){
-                    h += (i+1) * 100L;
+                    vhs.add(new VH(0, i+1));
                     break;
                 }
 
@@ -120,7 +123,7 @@ public class Thirteen {
                 int ti = i + j;
                 int bi = i - (j - 1);
                 if(ti >= width || bi < 0){
-                    h += (i+1);
+                    vhs.add(new VH(i+1, 0));
                     break;
                 }
                 for (int k = 0; k < height; k++) {
@@ -134,7 +137,7 @@ public class Thirteen {
 
             }
         }
-        return h + v;
+        return vhs;
     }
 
 
