@@ -28,10 +28,7 @@ public class Twelve {
         run(mainInput, "???", System.currentTimeMillis());
     }
 
-    private record Spring(char[] condition, List<Integer> record) {
-    }
-
-    ;
+    private record Spring(char[] condition, List<Integer> record) {}
 
     public static void run(List<String> input, String expectedOutput, long startTime) {
         var springs = input.stream().map(s -> s.split(" "))
