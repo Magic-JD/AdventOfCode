@@ -4,6 +4,7 @@ import tools.InternetParser;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static tools.Direction.*;
 
@@ -13,14 +14,12 @@ public class Main {
                                            """;
 
 
-
-
     /**
      *
      */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
-        List<String> mainInput = InternetParser.getInput(14);
+        List<String> mainInput = InternetParser.getInput(17);
         run(testInput, "-", System.currentTimeMillis());
         run(mainInput, "???", System.currentTimeMillis());
     }
