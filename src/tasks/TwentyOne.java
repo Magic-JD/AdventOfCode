@@ -53,10 +53,12 @@ public class TwentyOne {
      *
      */
     public static void main(String[] args) {
-        List<String> testInput = Arrays.stream(testData.split("\n")).toList();
-        List<String> mainInput = InternetParser.getInput(21);
-        //run(testInput, "-", System.currentTimeMillis());
-        run(mainInput, "???", System.currentTimeMillis());
+        System.out.println(calc(202300));
+
+    }
+
+    public static long calc(long x){
+        return (14590L*(x*x)) +(14694L*x) + 3691L;
     }
 
     public static void run(List<String> input, String expectedOutput, long startTime) {
@@ -97,10 +99,17 @@ public class TwentyOne {
         steps.add(firstLocation);
         currentSteps.add(firstLocation);
         int i;
+        int constant = 3691;
         for (i = 0; i < numberOfSteps; i++) {
             Set<Step> newToCheck = new HashSet<>();
-            System.out.println(i);
-            printArr(map, steps);
+            //System.out.println(i)
+            if(((i) - ((width-1)/2)) % width == 0){
+                //printArr(map, steps);
+                long totalSteps = steps.size() + (i % 2 != 0 ? countEven : countOdd);
+                System.out.println(totalSteps);
+                //System.out.println(totalSteps - constant);
+            }
+            //printArr(map, steps);
             while (!steps.isEmpty()){
                 Step step = steps.pop();
                if(step.i > 0 && map[step.i-1][step.j].stepable){
