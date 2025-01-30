@@ -4,113 +4,83 @@ import tools.InternetParser;
 
 import java.util.*;
 
-import static tools.LineUtils.split;
-
 public class Eight {
 
-    public static final String testData = """         
-            LR
+    public static final String testData = """
+............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............
+                        """;
 
-            11A = (11B, XXX)
-            11B = (XXX, 11Z)
-            11Z = (11B, XXX)
-            22A = (22B, XXX)
-            22B = (22C, 22C)
-            22C = (22Z, 22Z)
-            22Z = (22B, 22B)
-            XXX = (XXX, XXX)
-                                 """;
-
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(8);
-        run(testInput, "6", System.currentTimeMillis());
+        run(testInput, "34", System.currentTimeMillis());
         run(mainInput, "???", System.currentTimeMillis());
     }
 
     public static void run(List<String> input, String expectedOutput, long startTime) {
-        String instructions = input.get(0);
-        Map<String, List<String>> route = new HashMap<>();
-        for (int i = 2; i < input.size(); i++) {
-            String line = input.get(i);
-            String[] split = split(line, " = ");
-            var key = split[0];
-            var value = Arrays.stream(split[1].replaceAll("\\(", "").replaceAll("\\)", "").split(", ")).toList();
-            route.put(key, value);
-        }
-        long count = 0;
-        ArrayDeque<String> routes = new ArrayDeque<>(route.keySet().stream().filter(s -> s.charAt(2) == 'A').toList());
-        var lengths = new ArrayList<Long>();
-        List<String> temp = new ArrayList<>();
-        while (!routes.isEmpty() && count < 100000) {
-            String currentRoute = routes.pop();
-            if (!(currentRoute.charAt(2) == 'Z')) {
-                var values = route.get(currentRoute);
-                char direction = instructions.charAt((int) (count % instructions.length()));
-                if (direction == 'L') {
-                    temp.add(values.get(0));
-                } else {
-                    temp.add(values.get(1));
+        Map<Character, List<Loc>> mapping = new HashMap<>();
+        char[][] map = input.stream().map(String::toCharArray).toArray(char[][]::new);
+        int maxHeight = map.length;
+        int maxWidth = map[0].length;
+        for (int i = 0; i < maxHeight; i++) {
+            for (int j = 0; j < maxWidth; j++) {
+                char c = map[i][j];
+                if(c != '.'){
+                    List<Loc> locs = mapping.computeIfAbsent(c, dsfda -> new ArrayList<>());
+                    locs.add(new Loc(i, j));
                 }
-            } else {
-                lengths.add(count);
             }
-
-            if (routes.isEmpty()) {
-                if (temp.stream().anyMatch(s -> s.equals("DGZ"))) {
-                    for (String s : temp) {
-                        if (s.charAt(2) == 'Z') {
-                            // System.out.println((count + 1) + " : " + s);
-                        }
+        }
+        Set<Loc> an = new HashSet<>();
+        mapping.values().forEach(lis -> {
+            lis = lis.stream().sorted(Comparator.comparingInt(l -> l.i)).toList();
+            for (int i = 0; i < lis.size()-1; i++) {
+                for (int j = i+1; j < lis.size(); j++) {
+                    Loc l1 = lis.get(i);
+                    Loc l2 = lis.get(j);
+                    an.add(l1);
+                    an.add(l2);
+                    int diffI = l2.i - l1.i;
+                    boolean jAlsoSmaller = l1.j < l2.j;
+                    int diffJ = jAlsoSmaller ? l2.j - l1.j : l1.j - l2.j;
+                    int fi1 = l1.i;
+                    int fj1 = l1.j;
+                    int si2 = l2.i;
+                    int sj2 = l2.j;
+                    while((fi1 >= 0 && fi1 < maxHeight)|| (fj1 >= 0 && fj1 < maxWidth) || (si2 >= 0 && si2 < maxHeight) || (sj2 >= 0 && sj2 < maxWidth)){
+                        fi1 -= diffI;
+                        if(jAlsoSmaller) fj1 -= diffJ;
+                        else fj1 += diffJ;
+                        Loc loc1 = new Loc(fi1, fj1);
+                        an.add(loc1);
+                        si2 += diffI;
+                        if(jAlsoSmaller) sj2 += diffJ;
+                        else sj2 -= diffJ;
+                        Loc loc2 = new Loc(si2, sj2);
+                        an.add(loc2);
                     }
-
-
-                }
-                routes = new ArrayDeque<>(temp);
-                temp = new ArrayList<>();
-                count++;
-            }
-
-        }
-//        int biggest = (int) Math.sqrt(lengths.stream().mapToLong(l -> l).min().orElseThrow());
-//        int commonMultiple = 1;
-//
-//        for(int i =2; i<= biggest; i++){
-//            int finalI = i;
-//            if(lengths.stream().allMatch(l -> l % finalI == 0)){
-//                commonMultiple = i;
-//            }
-//        }
-//        BigInteger sum = BigInteger.ONE;
-//        for (Long n : lengths) {
-//            sum = sum.multiply(BigInteger.valueOf(n).divide(BigInteger.valueOf(commonMultiple)));
-//        }
-        lengths.stream().forEach(System.out::println);
-        long min = lengths.stream().mapToLong(l -> l).max().orElseThrow();
-        lengths.remove(min);
-        long sum = min;
-        boolean found = false;
-
-        while (!found) {
-            long finalSum = sum;
-            found = true;
-            for (Long length : lengths) {
-                if (finalSum % length != 0) {
-                    found = false;
-                    break;
                 }
             }
-            sum += min;
-        }
-        String answer = "" + (sum - min);
-        showAnswer(answer, expectedOutput, startTime);
+        });
+        showAnswer(String.valueOf(an.stream().filter(l -> l.i >= 0 && l.i < maxHeight && l.j >= 0 && l.j < maxWidth).toList().size()), expectedOutput, startTime);
     }
 
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private record Loc(int i, int j){}
+
+
+
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);

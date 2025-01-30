@@ -2,82 +2,133 @@ package tasks;
 
 import tools.InternetParser;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Eighteen {
 
     public static final String testData = """
-            R 6 (#70c710)
-            D 5 (#0dc571)
-            L 2 (#5713f0)
-            D 2 (#d2c081)
-            R 2 (#59c680)
-            D 2 (#411b91)
-            L 5 (#8ceee2)
-            U 2 (#caa173)
-            L 1 (#1b58a2)
-            U 2 (#caa171)
-            R 2 (#7807d2)
-            U 3 (#a77fa3)
-            L 2 (#015232)
-            U 2 (#7a21e3)
-                                           """;
+            5,4
+            4,2
+            4,5
+            3,0
+            2,1
+            6,3
+            2,4
+            1,5
+            0,6
+            3,3
+            2,6
+            5,1
+            1,2
+            5,5
+            2,5
+            6,5
+            1,4
+            0,4
+            6,4
+            1,1
+            6,1
+            1,0
+            0,5
+            1,6
+            2,0
+            """;
 
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(18);
-        run(testInput, "952408144115", System.currentTimeMillis());
-        run(mainInput, "???", System.currentTimeMillis());
+        run(testInput, "6,1", System.currentTimeMillis(), 6);
+        run(mainInput, "???", System.currentTimeMillis(), 70);
     }
 
-    private record Point(long i, long j) {
-    }
-
-    public static void run(List<String> input, String expectedOutput, long startTime) {
-        long i = 0;
-        long j = 0;
-        long totalMovement = 0;
-        List<Point> points = new ArrayList<>();
-        for (String str : input) {
-            String[] s = str.split(" ");
-            String color = s[2].replace("(", "").replace(")", "");
-            long move = Integer.valueOf(color.substring(1, 6), 16);
-            totalMovement += move;
-            Movement m = Movement.values()[Integer.parseInt(color.substring(6))];
-            switch (m) {
-                case U -> i -= move;
-                case R -> j += move;
-                case D -> i += move;
-                case L -> j -= move;
+    public static void run(List<String> input, String expectedOutput, long startTime, int dimension) {
+        List<Coord> collect = input.stream()
+                .map(s -> s.split(","))
+                .map(s -> new Coord(Integer.parseInt(s[0]), Integer.parseInt(s[1])))
+                .toList();
+        boolean[][] map = new boolean[dimension+1][dimension+1];
+        printMap(map);
+        for (int i = 0; i <= dimension; i++) {
+            for (int j = 0; j <= dimension; j++) {
+                map[i][j] = true;
             }
-            points.add(new Point(i, j));
         }
-        long count = 0L;
-        ArrayDeque<Point> queue = new ArrayDeque<>(points);
-        Point first = queue.peek();
-        while (!queue.isEmpty()){
-            Point p = queue.pop();
-            Point p2 = queue.isEmpty() ? first : queue.peek();
-            count += (p.i - p2.i) * (p.j + p2.j);
+        printMap(map);
+        Coord finalC = null;
+        for (int i = 0; i < collect.size(); i++) {
+            Coord current = collect.get(i);
+            map[current.i][current.j] = false;
+            try {
+                getCount(List.of(new Coord(0, 0)), Arrays.stream(map).map(arr -> Arrays.copyOf(arr, dimension+1)).toArray(boolean[][]::new), dimension);
+            } catch (RuntimeException e){
+                finalC = current;
+                break;
+            }
         }
-        long edgeAddition = 1 + (totalMovement/2);
-        var answer = ""+((Math.abs(count)/2) + edgeAddition);
-
-        showAnswer(answer, expectedOutput, startTime);
+        showAnswer(finalC.i + "," + finalC.j, expectedOutput, startTime);
     }
 
-    private enum Movement {
-        R, D, L, U
+    private static int getCount(List<Coord> coords, boolean[][] map, int dimention) {
+        int count = 1;
+        Coord end = new Coord(dimention, dimention);
+        while (!coords.isEmpty()){
+            List<Coord> newFound = new ArrayList<>();
+            for (Coord coord : coords) {
+                try {
+                    int i = coord.i + 1;
+                    int j = coord.j;
+                    if(map[i][j]){
+                        map[i][j] = false;
+                        newFound.add(new Coord(i, j));
+                    }
+                } catch (IndexOutOfBoundsException e){}
+                try {
+                    int i = coord.i - 1;
+                    int j = coord.j;
+                    if(map[i][j]){
+                        map[i][j] = false;
+                        newFound.add(new Coord(i, j));
+                    }
+                } catch (IndexOutOfBoundsException e){}
+                try {
+                    int i = coord.i;
+                    int j = coord.j + 1;
+                    if(map[i][j]){
+                        map[i][j] = false;
+                        newFound.add(new Coord(i, j));
+                    }
+                } catch (IndexOutOfBoundsException e){}
+                try {
+                    int i = coord.i;
+                    int j = coord.j - 1;
+                    if(map[i][j]){
+                        map[i][j] = false;
+                        newFound.add(new Coord(i, j));
+                    }
+                } catch (IndexOutOfBoundsException e){}
+            }
+            if(newFound.contains(end)) return count;
+            count++;
+            coords = newFound;
+        }
+        throw new RuntimeException();
     }
 
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private static void printMap(boolean[][] map){
+//        for (boolean[] booleans : map) {
+//            for (int j = 0; j < map.length; j++) {
+//                System.out.print(booleans[j] ? "." : "#");
+//            }
+//            System.out.println();
+//        }
+//        System.out.println("------------");
+    }
+
+
+    private record Coord(int i, int j){}
+
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);
@@ -93,5 +144,4 @@ public class Eighteen {
         System.out.println("Runtime: " + (System.currentTimeMillis() - startTime));
         System.out.println("-----------------------------------------------------------");
     }
-
 }

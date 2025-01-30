@@ -2,174 +2,128 @@ package tasks;
 
 import tools.InternetParser;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
 
 public class Fourteen {
 
     public static final String testData = """
-            O....#....
-            O.OO#....#
-            .....##...
-            OO.#O....O
-            .O.....O#.
-            O.#..O.#.#
-            ..O..#O..O
-            .......O..
-            #....###..
-            #OO..#....
-                                           """;
+            p=0,4 v=3,-3
+            p=6,3 v=-1,-3
+            p=10,3 v=-1,2
+            p=2,0 v=2,-1
+            p=0,0 v=1,3
+            p=3,0 v=-2,-2
+            p=7,6 v=-1,-3
+            p=3,0 v=-1,-2
+            p=9,3 v=2,3
+            p=7,3 v=-1,2
+            p=2,4 v=2,-3
+            p=9,5 v=-3,-3
+            """;
+    static List<Robot> startingRobots = new ArrayList<>();
 
-
-
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(14);
-        run(testInput, "64", System.currentTimeMillis());
-        run(mainInput, "???", System.currentTimeMillis());
+        //run(testInput, "12", System.currentTimeMillis(), 7, 11);
+        run(mainInput, "???", System.currentTimeMillis(), 103, 101);
     }
 
-    public static void run(List<String> input, String expectedOutput, long startTime) {
-        int sum = 0;
-        var map = new HashMap<String, Integer>();
-        char[][] table =
-                input.stream().map(String::toCharArray).toArray(char[][]::new);
-        int height = table.length;
-        int width = table[0].length;
-        int iterationNumber = 1000000000;
-        for (int i = 1; i < iterationNumber; i++) {
-            table = doCycle(table, height, width);
-            String key = toString(table, height);
-            Integer firstIndex = map.get(key);
-            if(firstIndex != null){
-                int cyclePosition = i;
-                int goal = iterationNumber - firstIndex;
-                int index = goal % (cyclePosition - firstIndex);
-                String[] s = map.entrySet().stream().filter(e ->
-                        e.getValue() == (index +
-                                firstIndex)).findAny().map(Map.Entry::getKey).orElseThrow().split("(?<=\\G.{"
-                        + width + "})");
-                char[][] array =
-                        Arrays.stream(s).map(String::toCharArray).toArray(char[][]::new);
-                int answerN = calculateLoad(array, height, width);
-                var answer = "" + answerN;
-                showAnswer(answer, expectedOutput, startTime);
-                return;
+    public static void run(List<String> input, String expectedOutput, long startTime, int height, int width) {
+        List<Robot> robots = input.stream().map(s -> {
+            String[] split = s.split(" ");
+            String position = split[0].split("=")[1];
+            String velocity = split[1].split("=")[1];
+            String[] spltp = position.split(",");
+            int px = Integer.parseInt(spltp[0]);
+            int py = Integer.parseInt(spltp[1]);
+            String[] splitv = velocity.split(",");
+            int vx = Integer.parseInt(splitv[0]);
+            int vy = Integer.parseInt(splitv[1]);
+            return new Robot(px, py, vx, vy);
+
+        }).toList();
+        startingRobots = robots;
+        for (int i = 0; i <= 10000; i++) {
+            robots = robots.stream().map(r -> {
+                int xpos = (r.xpos + r.vx);
+                if(xpos < 0){
+                    xpos += width;
+                }
+                xpos %= width;
+                int ypos = (r.ypos + r.vy);
+                if(ypos < 0){
+                    ypos += height;
+                }
+                ypos %= height;
+                return new Robot(xpos, ypos, r.vx, r.vy);
+            }).toList();
+            if(isTree(robots, height, width, 0)){
+                for (int j = 0; j < height; j++) {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (int k = 0; k < width; k++) {
+                        int finalJ = j;
+                        int finalK = k;
+                        if(robots.stream().anyMatch(r -> r.ypos == finalJ && r.xpos == finalK)){
+                            stringBuilder.append('*');
+                        } else {
+                            stringBuilder.append(".");
+                        }
+                    }
+                    System.out.println(stringBuilder);
+
+                }
+                System.out.println("--- " + i);
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                //showAnswer(String.valueOf(i), expectedOutput, startTime);
+                //return;
             }
-            map.put(key, i);
+
         }
+        long sum = 1;
+        long topLeft = robots.stream().filter(r -> r.xpos < width / 2 && r.ypos < height / 2).count();
+        long topRight = robots.stream().filter(r -> r.xpos > width / 2 && r.ypos < height / 2).count();
+        long bottomRight = robots.stream().filter(r -> r.xpos < width / 2 && r.ypos > height / 2).count();
+        long bottomLeft = robots.stream().filter(r -> r.xpos > width / 2 && r.ypos > height / 2).count();
+        sum *= topLeft;
+        sum *= topRight;
+        sum *= bottomRight;
+        sum *= bottomLeft;
+        showAnswer(String.valueOf(sum), expectedOutput, startTime);
     }
 
-    private static char[][] doCycle(char[][] table, int height, int
-            width) {
-        for (Direction d : Direction.values()) {
-            switch (d) {
-                case N -> {
-                    for (int i = 0; i < height; i++) {
-                        for (int j = 0; j < width; j++) {
-                            char c = table[i][j];
-                            if (c == 'O') {
-                                int ci = i;
-                                int cj = j;
-                                while (ci != 0 && table[ci - 1][cj] ==
-                                        '.') {
-                                    table[ci][cj] = '.';
-                                    table[ci - 1][cj] = c;
-                                    ci--;
-                                }
-                            }
-                        }
-                    }
-                }
-                case E -> {
-                    for (int i = 0; i < height; i++) {
-                        for (int j = width - 1; j >= 0; j--) {
-                            char c = table[i][j];
-                            if (c == 'O') {
-                                int ci = i;
-                                int cj = j;
-                                while (cj < width - 1 && table[ci][cj +
-                                        1] == '.') {
-                                    table[ci][cj] = '.';
-                                    table[ci][cj + 1] = c;
-                                    cj++;
-                                }
-                            }
-                        }
-                    }
-                }
-                case S -> {
-                    for (int i = height - 1; i >= 0; i--) {
-                        for (int j = 0; j < width; j++) {
-                            char c = table[i][j];
-                            if (c == 'O') {
-                                int ci = i;
-                                int cj = j;
-                                while (ci < height - 1 && table[ci +
-                                        1][cj] == '.') {
-                                    table[ci][cj] = '.';
-                                    table[ci + 1][j] = c;
-                                    ci++;
-                                }
-                            }
-                        }
-                    }
-                }
-                case W -> {
-                    for (int i = 0; i < height; i++) {
-                        for (int j = 0; j < width; j++) {
-                            char c = table[i][j];
-                            if (c == 'O') {
-                                int ci = i;
-                                int cj = j;
-                                while (cj != 0 && table[ci][cj - 1] ==
-                                        '.') {
-                                    table[ci][cj] = '.';
-                                    table[ci][cj - 1] = c;
-                                    cj--;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return table;
+    private record Pos(int x, int y){}
+
+    private static boolean isTree(List<Robot> robots, int height, int width, int offset) {
+        return robots.stream().map(r -> new Pos(r.xpos, r.ypos)).collect(Collectors.toSet()).size() > 495;
+        //return startingRobots.containsAll(robots) && robots.containsAll(startingRobots);
+       // return robots.stream().anyMatch(r -> r.ypos == height-1 && r.xpos == width/2) && robots.stream().anyMatch(r -> r.ypos == 0 && r.xpos == width/2);
+//        Map<Integer, List<Robot>> collect = robots.stream().collect(groupingBy(r -> r.ypos));
+//        boolean value = collect.values().stream().anyMatch(l -> l.size() >= 7);
+//        return value;
+//        for (int i = offset; i < height - (2-offset); i++) {
+//            int finalI = i;
+//            if(robots.stream().noneMatch(r -> r.ypos == finalI && r.xpos == width / 2 + (finalI - offset))){
+//                return false;
+//            }
+//            if(robots.stream().noneMatch(r -> r.ypos == finalI && r.xpos == width / 2 - (finalI - offset))){
+//                return false;
+//            }
+//
+//        }
+//        return true;
     }
 
-    private static int calculateLoad(char[][] table, int height, int
-            width) {
-        int sum = 0;
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                char c = table[i][j];
-                if (c == 'O') {
-                    sum += height - i;
-                }
-            }
-        }
-        return sum;
-    }
+    private record Robot(int xpos, int ypos, int vx, int vy){}
 
-    private static String toString(char[][] table, int height) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < height; i++) {
-            stringBuilder.append(new String(table[i]));
-        }
-        return stringBuilder.toString();
-    }
-
-    private enum Direction {
-        N, W, S, E
-    }
-
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);
@@ -185,5 +139,4 @@ public class Fourteen {
         System.out.println("Runtime: " + (System.currentTimeMillis() - startTime));
         System.out.println("-----------------------------------------------------------");
     }
-
 }

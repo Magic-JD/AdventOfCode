@@ -2,146 +2,137 @@ package tasks;
 
 import tools.InternetParser;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static java.lang.Math.abs;
 
 public class Thirteen {
 
-    public static final String testData = """      
-            #.##..##.
-            ..#.##.#.
-            ##......#
-            ##......#
-            ..#.##.#.
-            ..##..##.
-            #.#.##.#.
-                                                       
-            #...##..#
-            #....#..#
-            ..##..###
-            #####.##.
-            #####.##.
-            ..##..###
-            #....#..#
-                                           """;
+    public static final String testData = """
+Button A: X+94, Y+34
+Button B: X+22, Y+67
+Prize: X=8400, Y=5400
+
+Button A: X+26, Y+66
+Button B: X+67, Y+21
+Prize: X=12748, Y=12176
+
+Button A: X+17, Y+86
+Button B: X+84, Y+37
+Prize: X=7870, Y=6450
+
+Button A: X+69, Y+23
+Button B: X+27, Y+71
+Prize: X=18641, Y=10279
+""";
+
+    // Button A: X+17, Y+86
+    // Button B: X+84, Y+37
+    // Prize: X=7870, Y=6450
+    //
+    // Button a is pressed x times (min val)
+    // Button b is pressed y times
+    //
+    // 17x + 84y = 7870
+    // 86x + 37y = 6450
+    //
+    // -> Can add these
+    //
+    // 103x + 113y = 14320
+    //
+    // Is there a way to minus?
+    //
+    // 84y = 7870 - 17x
+    // 37y = 6450 - 86x
+    //
+    // 47y = 69x + 1420
+    //
+    // 47y - 69x = 1420
+    //
+    // Move the x to the right
 
 
-
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(13);
-        run(testInput, "400", System.currentTimeMillis());
+        run(testInput, "480", System.currentTimeMillis());
         run(mainInput, "???", System.currentTimeMillis());
     }
 
     public static void run(List<String> input, String expectedOutput, long startTime) {
-        var answer = "" + answer(input);
-        showAnswer(answer, expectedOutput, startTime);
+        long sum = 0L;
+        List<Game> games = new ArrayList<>();
+        for (int i = 0; i < input.size(); i+=4) {
+            String buttonALine = input.get(i);
+            String[] split = buttonALine.split(" ");
+            int ax = Integer.parseInt(split[2].substring(2).replaceAll(",", ""));
+            int ay = Integer.parseInt(split[3].substring(2));
+            Button a = new Button(BigDecimal.valueOf(ax), BigDecimal.valueOf(ay));
+            String buttonBLine = input.get(i+1);
+            split = buttonBLine.split(" ");
+            int bx = Integer.parseInt(split[2].substring(2).replaceAll(",", ""));
+            int by = Integer.parseInt(split[3].substring(2));
+            Button b = new Button(BigDecimal.valueOf(bx), BigDecimal.valueOf(by));
+            Pattern pattern = Pattern.compile("\\d+");
+            String goalLine = input.get(i + 2);
+            Matcher matcher = pattern.matcher(goalLine);
+            matcher.find();
+            int goalX = Integer.parseInt(matcher.group());
+            matcher.find();
+            int goalY = Integer.parseInt(matcher.group());
+            games.add(new Game(a, b, new Goal(BigDecimal.valueOf(goalX + 10000000000000L), BigDecimal.valueOf(goalY + 10000000000000L))));
+
+        }
+        sum = games.stream().mapToLong(Thirteen::calculateMaxTokens).sum();
+
+        showAnswer(String.valueOf(sum), expectedOutput, startTime);
     }
 
-    private static long answer(List<String> input){
-        List<List<String>> reflections = new ArrayList<>();
-        List<String> currentList = new ArrayList<>();
-        for (int i = 0; i < input.size(); i++) {
-            String s = input.get(i);
-            if(s.isBlank()){
-                reflections.add(currentList);
-                currentList = new ArrayList<>();
-            } else {
-                currentList.add(s);
-            }
+    private static long calculateMaxTokens(Game g) {
+        BigDecimal subtract = g.a.x.multiply(g.b.y).subtract(g.a.y.multiply(g.b.x));
+        BigDecimal a = g.g.x.multiply(g.b.y).subtract(g.g.y.multiply(g.b.x)).divide(subtract, MathContext.DECIMAL128);
+        BigDecimal b = g.a.x.multiply(g.g.y).subtract(g.a.y.multiply(g.g.x)).divide(subtract, MathContext.DECIMAL128);
+        if(a.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) == 0 && b.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO)== 0){
+            return a.multiply(BigDecimal.valueOf(3)).add(b).toBigInteger().longValue();
         }
-        reflections.add(currentList);
-
-        return reflections.stream().map(Thirteen::valueForReflection).mapToLong(vh -> vh.v + (vh.h * 100)).sum();
+        return 0;
+//        if(ans > 0){
+//            for (long i = ans; i > 0; i-= x) {
+//                if(i % y == 0){
+//                    long aPress = abs((ans-i)/x);
+//                    long bPress = abs(i/y);
+//                    if(aPress < 100 && bPress < 100){
+//                        return (aPress * 3) + bPress;
+//                    }
+//                }
+//            }
+//        } else {
+//            for (long i = ans; i < 0; i += x){
+//                if(i % y == 0){
+//                    long aPress = abs((ans-i)/x);
+//                    long bPress = abs(i/y);
+//                    if(aPress < 100 && bPress < 100){
+//                        return (aPress * 3) + bPress;
+//                    }
+//                }
+//            }
+//        }
+       // return 0;
     }
 
-    private static VH valueForReflection(List<String> reflection){
-        VH oldValue = calculateReflection(reflection).get(0);
-        int height = reflection.size();
-        int width = reflection.get(0).length();
-        for (int i = 0; i < height; i++) {
-            var s = reflection.get(i).toCharArray();
-            for (int j = 0; j < width; j++) {
-                s[j] = s[j] == '.' ? '#' : '.';
-                var newString = new String(s);
-                reflection.remove(i);
-                reflection.add(i, newString);
-                var newValues = calculateReflection(reflection);
-                for(VH vh : newValues){
-                    if(!vh.equals(oldValue)){
-                        return vh;
-                    }
-                }
-                s[j] = s[j] == '.' ? '#' : '.';
-                newString = new String(s);
-                reflection.remove(i);
-                reflection.add(i, newString);
-            }
+    private record Game(Button a, Button b, Goal g){}
 
-        }
-        System.out.println(oldValue);
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                System.out.print(reflection.get(i).charAt(j));
-            }
-            System.out.print("\n");
-        }
-        throw new RuntimeException("No new value found!!!");
-    }
+    private record Button(BigDecimal x, BigDecimal y){}
 
-    private record VH(long v, long h){}
+    private record Goal(BigDecimal x, BigDecimal y){}
 
-    private static List<VH> calculateReflection(List<String> reflection){
-        var vhs = new ArrayList<VH>();
-        int height = reflection.size();
-        for (int i = 0; i < height -1; i++) {
-            for (int j = 1; true; j++) {
-                int ti = i + j;
-                int bi = i - (j - 1);
-                if(ti >= height || bi < 0){
-                    vhs.add(new VH(0, i+1));
-                    break;
-                }
-
-                var t = reflection.get(ti);
-                var b = reflection.get(bi);
-                if(!t.equals(b)){
-                    break;
-                }
-            }
-        }
-        int width = reflection.get(0).length();
-        for (int i = 0; i < width -1; i++) {
-            outerloop:
-            for (int j = 1; true; j++)  {
-                int ti = i + j;
-                int bi = i - (j - 1);
-                if(ti >= width || bi < 0){
-                    vhs.add(new VH(i+1, 0));
-                    break;
-                }
-                for (int k = 0; k < height; k++) {
-                    var r = reflection.get(k);
-                    var t = r.charAt(ti);
-                    var b = r.charAt(bi);
-                    if(t != b){
-                        break outerloop;
-                    }
-                }
-
-            }
-        }
-        return vhs;
-    }
-
-
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);

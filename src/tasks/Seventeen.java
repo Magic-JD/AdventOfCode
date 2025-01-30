@@ -1,122 +1,115 @@
 package tasks;
 
-import tools.Direction;
 import tools.InternetParser;
 
+import java.math.BigInteger;
 import java.util.*;
-
-import static tools.Direction.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Seventeen {
 
-    public static final String testData = """   
-            2413432311323
-            3215453535623
-            3255245654254
-            3446585845452
-            4546657867536
-            1438598798454
-            4457876987766
-            3637877979653
-            4654967986887
-            4564679986453
-            1224686865563
-            2546548887735
-            4322674655533
-                                           """;
+    public static final String testData = """
+            Register A: 0
+            Register B: 0
+            Register C: 0
 
+            Program: 0,3,5,4,3,0
+                        """;
 
-    private static int width;
-    private static int height;
-    private static int[][] field;
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(17);
-        run(testInput, "94", System.currentTimeMillis());
+        run(testInput, "117440", System.currentTimeMillis());
         run(mainInput, "???", System.currentTimeMillis());
     }
 
-    private record LavaHead(int i, int j, Direction d, int timesMoved, int score) {
-    }
-
     public static void run(List<String> input, String expectedOutput, long startTime) {
-        width = input.get(0).length();
-        long widthFactor = (long) Math.pow(10, String.valueOf(input.get(0).length()).length() * 2);
-        height = input.size();
-        field = new int[input.size()][input.get(0).length()];
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                field[i][j] = input.get(i).charAt(j) - '0';
+        List<Integer> instructions = Arrays.stream(input.get(4).split(" ")[1].split(",")).map(Integer::parseInt).toList();
+
+        BigInteger a = BigInteger.ONE;
+        long b = 0;
+        long c = 0;
+
+        for (int i = instructions.size()-1; i >= 0; i--){
+            List<Integer> expectedResult = instructions.subList(i, instructions.size());
+            List<Integer> output = calculateResult(a, instructions);
+            while(!output.equals(expectedResult)){
+                a = a.add(BigInteger.ONE);
+                output = calculateResult(a, instructions);
+            }
+            if(i != 0) {
+                a = a.multiply(BigInteger.valueOf(8));
             }
         }
-        int minHeatLoss = Integer.MAX_VALUE;
-        ArrayDeque<LavaHead> queue = new ArrayDeque<>();
-        queue.add(new LavaHead(0, 1, E, 1,  field[height-1][width-1]));
-        queue.add(new LavaHead(1, 0, S, 1, field[height-1][width-1]));
-        Map<Integer, int[]> visited = new HashMap<>();
-        Set<LavaHead> set = new HashSet<>();
-        while (!queue.isEmpty()){
-            LavaHead newest = queue.pop();
-            if(newest.i == height-1 && newest.j == width-1){
-                minHeatLoss = Math.min((newest.score), minHeatLoss);
-            } else {
-                int key = ((int)(newest.j * widthFactor)) + (newest.i * 10) + newest.timesMoved;
-                int[] value = visited.getOrDefault(key, new int[]{Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE});
-                int ord = newest.d.ordinal();
-                int visitedScore = value[ord];
-                if(newest.score < minHeatLoss && newest.score < visitedScore){
-                    value[ord] = newest.score;
-                    if(newest.timesMoved < 10){
-                        continueStraight(newest).ifPresent(set::add);
-                    }
-                    if(newest.timesMoved > 3){
-                        turnLeft(newest).ifPresent(set::add);
-                        turnRight(newest).ifPresent(set::add);
-                    }
-                    visited.put(key, value);
-
-                }
-            }
-            if(queue.isEmpty()){
-                queue.addAll(set);
-                set = new HashSet<>();
-            }
-
-        }
-        //System.out.println(visited.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e -> e.getKey() + " " + Arrays.toString(e.getValue())).collect(Collectors.joining("\n")));
-        var answer = "" + minHeatLoss;
-        showAnswer(answer, expectedOutput, startTime);
+        printNumber(a, b, c, instructions);
+        showAnswer(a.toString(), expectedOutput, startTime);
     }
 
-    private static Optional<LavaHead> continueStraight(LavaHead c){
-        Direction d = c.d;
-        return switch (d){
-            case N -> c.i > 0 ? Optional.of(new LavaHead(c.i-1, c.j, d, c.timesMoved + 1, c.score + field[c.i][c.j])) : Optional.empty();
-            case E -> c.j < width-1 ? Optional.of(new LavaHead(c.i, c.j+1, d, c.timesMoved + 1, c.score + field[c.i][c.j])) : Optional.empty();
-            case S -> c.i < height-1 ? Optional.of(new LavaHead(c.i+1, c.j, d, c.timesMoved + 1, c.score + field[c.i][c.j])) : Optional.empty();
-            case W -> c.j > 0 ? Optional.of(new LavaHead(c.i, c.j-1, d, c.timesMoved + 1, c.score + field[c.i][c.j])) : Optional.empty();
+    private static List<Integer> calculateResult(BigInteger a, List<Integer> instructions){
+        long b = 0;
+        long c = 0;
+        List<Integer> result = new ArrayList<>();
+        for (int i = 0; i < instructions.size(); i += 2) {
+            int instr = instructions.get(i);
+            int op = instructions.get(i + 1);
+            switch (instr) {
+                case 0 -> a = (a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))));
+                case 1 -> b = b ^ op;
+                case 2 -> b = getComboOp(op, a, b, c).mod(BigInteger.valueOf(8)).longValue();
+                case 3 -> {
+                    if (!a.equals(BigInteger.ZERO)) i = op - 2;
+                }
+                case 4 -> b = b ^ c;
+                case 5 -> {
+                    result.add(getComboOp(op, a, b, c).mod(BigInteger.valueOf(8)).intValue());
+                }
+                case 6 -> b = a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))).longValue();
+                case 7 -> c = a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))).longValue();
+                default -> throw new RuntimeException();
+            }
+        }
+        return result;
+    }
+
+    private static void printNumber(BigInteger a, long b, long c, List<Integer> instructions){
+        System.out.println("Expected output for " + a.toString());
+        System.out.println(instructions.stream().map(String::valueOf).collect(Collectors.joining(", ")));
+        System.out.println("Actual output for " + a.toString());
+        for (int i = 0; i < instructions.size(); i += 2) {
+            int instr = instructions.get(i);
+            int op = instructions.get(i + 1);
+            switch (instr) {
+                case 0 -> a = (a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))));
+                case 1 -> b = b ^ op;
+                case 2 -> b = getComboOp(op, a, b, c).mod(BigInteger.valueOf(8)).longValue();
+                case 3 -> {
+                    if (!a.equals(BigInteger.ZERO)) i = op - 2;
+                }
+                case 4 -> b = b ^ c;
+                case 5 -> {
+                    System.out.print(getComboOp(op, a, b, c).mod(BigInteger.valueOf(8)).intValue());
+                    System.out.print(", ");
+                }
+                case 6 -> b = a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))).longValue();
+                case 7 -> c = a.divide(BigInteger.valueOf((long) Math.pow(2, getComboOp(op, a, b, c).longValue()))).longValue();
+                default -> throw new RuntimeException();
+            }
+        }
+        System.out.println();
+    }
+    private static BigInteger getComboOp(int op, BigInteger a, long b, long c) {
+        return switch (op) {
+            case 0, 1, 2, 3 -> BigInteger.valueOf(op);
+            case 4 -> a;
+            case 5 -> BigInteger.valueOf(b);
+            case 6 -> BigInteger.valueOf(c);
+            default -> throw new RuntimeException();
         };
     }
 
-    private static Optional<LavaHead> turnLeft(LavaHead c){
-        Direction d = c.d;
-        int ord = d.ordinal();
-        Direction newDirection = values()[ord - 1 >= 0 ? ord - 1 : 3];
-        return continueStraight(new LavaHead(c.i, c.j, newDirection, 0, c.score));
-    }
-
-    private static Optional<LavaHead> turnRight(LavaHead c){
-        Direction d = c.d;
-        int ord = d.ordinal();
-        Direction newDirection = values()[ord + 1 <= 3 ? ord + 1 : 0];
-        return continueStraight(new LavaHead(c.i, c.j, newDirection, 0, c.score));
-    }
-
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);
@@ -133,4 +126,6 @@ public class Seventeen {
         System.out.println("-----------------------------------------------------------");
     }
 
+    private record JumpState(long a, long b, long c, int i) {
+    }
 }

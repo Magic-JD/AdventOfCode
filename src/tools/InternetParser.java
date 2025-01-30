@@ -20,10 +20,11 @@ public class InternetParser {
             return new FileParser().parseFile(fileName);
         }
         try {
+            String value = new FileParser().parseFile("resources/cookie.txt").get(0);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI("https://adventofcode.com/2023/day/" + day + "/input"))
+                    .uri(new URI("https://adventofcode.com/2024/day/" + day + "/input"))
                     .GET()
-                    .header("cookie", new FileParser().parseFile("resources/cookie.txt").get(0))
+                    .header("cookie", value)
                     .build();
             List<String> list = Arrays.asList(HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body().split("\n"));
             if (list.size() == 1) {
@@ -54,4 +55,18 @@ public class InternetParser {
         }
     }
 
+    public static List<String> getLeader(int year, int day) {
+        try {
+            String value = new FileParser().parseFile("resources/cookie.txt").get(0);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(new URI("https://adventofcode.com/20" + year + "/leaderboard/day/" + day))
+                    .GET()
+                    .header("cookie", value)
+                    .build();
+            List<String> list = Arrays.asList(HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body().split("\n"));
+            return list;
+        } catch (URISyntaxException | IOException | InterruptedException e) {
+            return Collections.emptyList();
+        }
+    }
 }

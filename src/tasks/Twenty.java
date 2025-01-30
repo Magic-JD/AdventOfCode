@@ -3,71 +3,190 @@ package tasks;
 import tools.InternetParser;
 
 import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class Twenty {
 
-    public static final String testData = """      
-            """;
+    public static final String testData = """
+            ###############
+            #...#...#.....#
+            #.#.#.#.#.###.#
+            #S#...#.#.#...#
+            #######.#.#.###
+            #######.#.#...#
+            #######.#.###.#
+            ###..E#...#...#
+            ###.#######.###
+            #...###...#...#
+            #.#####.#.###.#
+            #.#...#.#.#...#
+            #.#.#.#.#.#.###
+            #...#...#...###
+            ###############
+                        """;
 
-    public static long HIGH_ENERGY = 0L;
-    public static long LOW_ENERGY = 0L;
-
-    /**
-     *
-     */
     public static void main(String[] args) {
         List<String> testInput = Arrays.stream(testData.split("\n")).toList();
         List<String> mainInput = InternetParser.getInput(20);
-        //run(testInput, "-", System.currentTimeMillis());
-        run(mainInput, "???", System.currentTimeMillis());
+        run(testInput, "29", System.currentTimeMillis(), 72);
+        run(mainInput, "???", System.currentTimeMillis(), 100);
     }
 
-    public static void run(List<String> input, String expectedOutput, long startTime) {
-        Map<String, Op> mapping = new HashMap<>();
-        mapping.put("output", new Output());
-        for (String s : input) {
-            if (s.startsWith("%")) {
-                s = s.substring(1);
-                String[] split = s.split(" -> ");
-                Flip flip = new Flip(Arrays.stream(split[1].split(", ")).toList(), split[0]);
-                mapping.put(flip.name, flip);
-            } else if (s.startsWith("&")) {
-                s = s.substring(1);
-                String[] split = s.split(" -> ");
-                Con con = new Con(Arrays.stream(split[1].split(", ")).toList(), split[0]);
-                mapping.put(con.name, con);
-            } else {
-                String[] split = s.split(" -> ");
-                LowSpreader l = new
-                        LowSpreader(Arrays.stream(split[1].split(", ")).toList(), split[0]);
-                mapping.put(l.name, l);
+    public static void run(List<String> input, String expectedOutput, long startTime, int timeSaved) {
+        char[][] map = input.stream().map(String::toCharArray).toArray(char[][]::new);
+        Map<Coord, Integer> locationToDistance = new HashMap<>();
+        List<Coord> coords = new ArrayList<>();
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[0].length; j++) {
+                if (map[i][j] == 'S') {
+                    coords.add(new Coord(i, j));
+                }
             }
         }
-        mapping.values().forEach(op -> op.outputTo().forEach(o -> {
-            if (mapping.get(o) instanceof Con c)
-                c.map.put(op.getName(), false);
-        }));
-        LowSpreader button = new LowSpreader(List.of("broadcaster"),
-                "button");
-        ArrayDeque<Supplier<Result>> arrayDeque = new ArrayDeque<>();
-        int i;
-        for (i = 0; i < 10000000; i++) {
-            int finalI = i;
-            arrayDeque.add(() -> button.relay(new
-                    Result(finalI +1, List.of("broadcaster"), false, button.name)));
-            while (!arrayDeque.isEmpty()) {
-                Result result = arrayDeque.pop().get();
-                arrayDeque.addAll(result.to.stream().map(mapping::get).filter(Objects::nonNull).map(op
-                        -> ((Supplier<Result>) () -> op.relay(result))).toList());
+        int pureLength = getLength(coords, map, Integer.MAX_VALUE, locationToDistance, new HashSet<>());
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[0].length; j++) {
+                if (map[i][j] == '.') {
+                    Coord key = new Coord(i, j);
+                    locationToDistance.put(key, getLength(List.of(key), map, Integer.MAX_VALUE, locationToDistance, new HashSet<>()));
+                }
+                if (map[i][j] == 'E') {
+                    locationToDistance.put(new Coord(i, j), 0);
+                }
             }
         }
-        var answer = "" + i;
-        showAnswer(answer, expectedOutput, startTime);
+        int maxLength = pureLength - timeSaved;
+        long cheats = findNumberOfCheats(coords, map, maxLength, new HashSet<>(coords), locationToDistance);
+        showAnswer(String.valueOf(cheats), expectedOutput, startTime);
     }
 
-    public static void showAnswer(String answer, String expectedOutput, long startTime) {
+    private static long findNumberOfCheats(List<Coord> coords, char[][] map, int maxLength, Set<Coord> visited, Map<Coord, Integer> maxDistances) {
+        long total = 0;
+        while (maxLength >= 0 && !coords.isEmpty()) {
+            List<Coord> next = new ArrayList<>();
+            int finalMaxLength = maxLength;
+            for (Coord start : coords) {
+                total += IntStream.range(2, Math.min(maxLength+1, 21))
+                        .mapToLong(i -> coordsForI(i, start, finalMaxLength, map, maxDistances)).sum();
+                List<Coord> list = Stream.of(
+                                new Coord(start.i + 1, start.j),
+                                new Coord(start.i - 1, start.j),
+                                new Coord(start.i, start.j + 1),
+                                new Coord(start.i, start.j - 1)
+                        )
+                        .filter(coord -> coord.i >= 0 && coord.j >= 0 && coord.i < map.length && coord.j < map[0].length)
+                        .filter(coord -> map[coord.i][coord.j] == '.')
+                        .filter(visited::add).toList();
+                next.addAll(list);
+            }
+            maxLength--;
+            coords = next;
+
+        }
+        return total;
+    }
+
+    private static long coordsForI(int i, Coord start, int finalMaxLength, char[][] map, Map<Coord, Integer> maxDistances) {
+        Set<Coord> coords = new HashSet<>();
+        for (int j = 0; j <= i; j++) {
+            coords.add(new Coord(start.i + j, start.j + (i - j)));
+            coords.add(new Coord(start.i - j, start.j + (i - j)));
+            coords.add(new Coord(start.i + j, start.j - (i - j)));
+            coords.add(new Coord(start.i - j, start.j - (i - j)));
+        }
+        return coords.stream().filter(coord -> coord.i >= 0 && coord.j >= 0 && coord.i < map.length && coord.j < map[0].length)
+                .filter(coord -> map[coord.i][coord.j] == '.' || map[coord.i][coord.j] == 'E')
+                .filter(coord -> maxDistances.get(coord) <= finalMaxLength - i).count();
+    }
+
+    private static int getLength(List<Coord> coords, char[][] map, int max, Map<Coord, Integer> distances, Set<Coord> visited) {
+        if (distances.containsKey(coords.getFirst())) {
+            return distances.get(coords.getFirst());
+        }
+        int pureLength = 1;
+        Coord first = coords.getFirst();
+        visited.add(first);
+        if (map[first.i][first.j] == 'E') {
+            return 0;
+        }
+        while (!coords.isEmpty()) {
+            List<Coord> next = new ArrayList<>();
+            for (Coord coord : coords) {
+                try {
+                    int i = coord.i + 1;
+                    int j = coord.j;
+                    if (visited.add(new Coord(i, j))) {
+                        char nc = map[i][j];
+                        if (nc == 'E') {
+                            return pureLength;
+                        }
+                        if (nc == '.') {
+                            next.add(new Coord(i, j));
+                        }
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+            }
+            for (Coord coord : coords) {
+                try {
+                    int i = coord.i - 1;
+                    int j = coord.j;
+                    if (visited.add(new Coord(i, j))) {
+                        char nc = map[i][j];
+                        if (nc == 'E') {
+                            return pureLength;
+                        }
+                        if (nc == '.') {
+                            next.add(new Coord(i, j));
+                        }
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+            }
+            for (Coord coord : coords) {
+                try {
+                    int i = coord.i;
+                    int j = coord.j + 1;
+                    if (visited.add(new Coord(i, j))) {
+
+                        char nc = map[i][j];
+                        if (nc == 'E') {
+                            return pureLength;
+                        }
+                        if (nc == '.') {
+                            next.add(new Coord(i, j));
+                        }
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+            }
+            for (Coord coord : coords) {
+                try {
+                    int i = coord.i;
+                    int j = coord.j - 1;
+                    if (visited.add(new Coord(i, j))) {
+                        char nc = map[i][j];
+                        if (nc == 'E') {
+                            return pureLength;
+                        }
+                        if (nc == '.') {
+                            next.add(new Coord(i, j));
+                        }
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+            }
+            pureLength++;
+            if (pureLength > max) {
+                return Integer.MAX_VALUE;
+            }
+            coords = next;
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    private static void showAnswer(String answer, String expectedOutput, long startTime) {
         if (expectedOutput.equals("???")) {
             System.out.println("ACTUAL ANSWER");
             System.out.println("The actual output is : " + answer);
@@ -84,156 +203,6 @@ public class Twenty {
         System.out.println("-----------------------------------------------------------");
     }
 
-    private interface Op {
-        Result relay(Result result);
-
-        List<String> outputTo();
-
-        String getName();
-    }
-
-    private static class Output implements Op {
-
-        @Override
-        public Result relay(Result result) {
-            return new Result(result.run, Collections.emptyList(), false, "output");
-        }
-
-        @Override
-        public List<String> outputTo() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public String getName() {
-            return "output";
-        }
-    }
-
-    private static class LowSpreader implements Op {
-
-        private final String name;
-        private final List<String> outputTo;
-
-        public LowSpreader(List<String> outputTo, String name) {
-            this.outputTo = outputTo;
-            this.name = name;
-        }
-
-        @Override
-        public Result relay(Result result) {
-            LOW_ENERGY += outputTo.size();
-            return new Result(result.run, outputTo, false, name);
-        }
-
-        @Override
-        public List<String> outputTo() {
-            return outputTo;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-    }
-
-    private static class Con implements Op {
-
-        Map<String, Boolean> map = new HashMap<>();
-        List<String> outputTo;
-        String name;
-        boolean interesting = false;
-
-        public Con(List<String> to, String name) {
-            outputTo = to;
-            this.name = name;
-            if(to.contains("rx")){
-                interesting = true;
-            }
-        }
-
-
-        @Override
-        public Result relay(Result result) {
-            map.put(result.from, result.energy);
-            if(interesting){
-                if(map.values().contains(true)){
-                    Object[] array = map.values().toArray();
-                    //for (int i = 0; i < array.length; i++) {
-                        if(array[3].equals(true)){ //I was too lazy to write the proper algorithm for this
-                            // so instead I just logged the cycles and then put them through a LCM calculator to get the answer
-                            System.out.println(result.run);
-                        }
-                    //}
-                    //System.out.println(Arrays.toString(array));
-                }
-            }
-            if (map.values().stream().allMatch(b -> b)) {
-                LOW_ENERGY += outputTo.size();
-                return new Result(result.run, outputTo, false, name);
-            } else {
-                HIGH_ENERGY += outputTo.size();
-                return new Result(result.run,  outputTo, true, name);
-            }
-        }
-
-        @Override
-        public List<String> outputTo() {
-            return outputTo;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-    }
-
-    private static class Flip implements Op {
-        boolean on = false;
-        List<String> outputTo;
-        String name;
-
-
-        public Flip(List<String> outputTo, String name) {
-            this.outputTo = outputTo;
-            this.name = name;
-        }
-
-
-        @Override
-        public Result relay(Result result) {
-            boolean energy = result.energy;
-            if (energy) {
-                return new Result(result.run, Collections.emptyList(), false, name);
-            }
-            on = !on;
-            if (on) {
-                HIGH_ENERGY += outputTo.size();
-            } else {
-                LOW_ENERGY += outputTo.size();
-            }
-            return new Result(result.run, outputTo, on, name);
-        }
-
-        @Override
-        public List<String> outputTo() {
-            return outputTo;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-    }
-
-    private record Result(long run, List<String> to, boolean energy, String from) {
-
-        @Override
-        public String toString() {
-            String e = energy ? "high" : "low";
-            return to.stream().map(t -> from + " -" + e + "-> " +
-                    t).collect(Collectors.joining("\n"));
-        }
+    private record Coord(int i, int j) {
     }
 }
